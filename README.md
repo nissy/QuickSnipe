@@ -24,7 +24,7 @@ Experience unprecedented convenience by editing copied content before pasting.
 
 ## Installation
 
-1. [Download the latest version](https://github.com/your-repo/QuickSnipe/releases/latest)
+1. [Download the latest version](https://github.com/nissy/QuickSnipe/releases/latest)
 2. Move `QuickSnipe.app` to Applications folder
 3. Launch and start using from the menu bar
 
