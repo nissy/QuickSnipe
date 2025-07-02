@@ -30,13 +30,13 @@ class Logger {
         
         switch level {
         case .debug:
-            os_log(.debug, log: osLog, "%{public}@", logMessage)
+            os_log(.debug, log: osLog, "%{private}@", logMessage)
         case .info:
-            os_log(.info, log: osLog, "%{public}@", logMessage)
+            os_log(.info, log: osLog, "%{private}@", logMessage)
         case .warning:
-            os_log(.default, log: osLog, "%{public}@", logMessage)
+            os_log(.default, log: osLog, "%{private}@", logMessage)
         case .error:
-            os_log(.error, log: osLog, "%{public}@", logMessage)
+            os_log(.error, log: osLog, "%{private}@", logMessage)
         }
         
         // Debug output is handled by os_log

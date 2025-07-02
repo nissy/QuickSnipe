@@ -81,39 +81,45 @@ class ClipboardService: ObservableObject, ClipboardServiceProtocol {
     }
     
     private func addToHistory(_ content: String) {
+        // サイズ検証（10MBを上限）
+        let maxContentSize = 10 * 1024 * 1024
+        guard content.utf8.count <= maxContentSize else {
+            Logger.shared.warning("Clipboard content too large, skipping: \(content.utf8.count) bytes")
+            return
+        }
+        
         serialQueue.async { [weak self] in
             guard let self = self else { return }
             
-            var historyCopy: [ClipItem] = []
+            // 現在のアプリケーション名を取得（バックグラウンドで）
+            let sourceApp = self.getActiveAppName()
             
-            DispatchQueue.main.sync {
+            // 履歴の更新と保存
+            DispatchQueue.main.async {
                 // 既存のアイテムを探す
                 if let existingIndex = self.history.firstIndex(where: { $0.content == content }) {
                     // 既存のアイテムを最新に移動
                     let existingItem = self.history.remove(at: existingIndex)
                     self.history.insert(existingItem, at: 0)
                     
-                    Logger.shared.debug("Moved existing item to top: \(content.prefix(20))...")
+                    Logger.shared.debug("Moved existing item to top")
                 } else {
                     // 新しいアイテムを追加
-                    let sourceApp = self.getActiveAppName()
                     let newItem = ClipItem(content: content, sourceApp: sourceApp)
                     self.history.insert(newItem, at: 0)
                     
-                    Logger.shared.debug(
-                        "Added new item to history: \(content.prefix(20))..., " +
-                        "app: \(sourceApp ?? "unknown")"
-                    )
+                    Logger.shared.debug("Added new item to history from app: \(sourceApp ?? "unknown")")
                 }
                 
                 // 履歴の上限を設定
                 self.cleanupHistory()
                 
-                historyCopy = self.history
+                // 永続化のために非同期でコピーを保存
+                let historyCopy = self.history
+                self.serialQueue.async {
+                    self.repository.save(historyCopy)
+                }
             }
-            
-            // Save to persistent storage
-            self.repository.save(historyCopy)
         }
     }
     

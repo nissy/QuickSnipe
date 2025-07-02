@@ -14,10 +14,17 @@ final class ClipboardServiceTests: XCTestCase {
     override func setUp() {
         super.setUp()
         clipboardService = ClipboardService.shared
+        // テスト開始前に履歴をクリア
+        clipboardService.clearAllHistory()
     }
     
     override func tearDown() {
         clipboardService.stopMonitoring()
+        // テスト終了後も履歴をクリア
+        clipboardService.clearAllHistory()
+        // UserDefaultsから大きなデータをクリア
+        UserDefaults.standard.removeObject(forKey: "com.quicksnipe.clipboardHistory")
+        UserDefaults.standard.synchronize()
         clipboardService = nil
         super.tearDown()
     }
@@ -133,4 +140,5 @@ final class ClipboardServiceTests: XCTestCase {
         
         wait(for: [expectation], timeout: 1.0)
     }
+    
 }

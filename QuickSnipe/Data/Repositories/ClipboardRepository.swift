@@ -12,16 +12,19 @@ class ClipboardRepository {
     private let clipboardHistoryKey = "com.quicksnipe.clipboardHistory"
     private let maxStoredItems = 100
     
-    func save(_ items: [ClipItem]) {
+    @discardableResult
+    func save(_ items: [ClipItem]) -> Bool {
         // Limit stored items to prevent excessive storage
         let itemsToSave = Array(items.prefix(maxStoredItems))
         
         do {
             let encoded = try JSONEncoder().encode(itemsToSave)
             userDefaults.set(encoded, forKey: clipboardHistoryKey)
+            return true
         } catch {
             Logger.shared.error("Failed to save clipboard history: \(error.localizedDescription)")
             // エラーが発生してもデータは削除しない
+            return false
         }
     }
     

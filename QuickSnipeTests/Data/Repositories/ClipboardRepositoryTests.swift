@@ -100,4 +100,43 @@ final class ClipboardRepositoryTests: XCTestCase {
         // In production code, consider making timestamp configurable for testing
         XCTAssertGreaterThanOrEqual(loadedItems.count, 1)
     }
+    
+    func testSaveReturnValue() {
+        // Given
+        let items = [
+            ClipItem(content: "Test 1"),
+            ClipItem(content: "Test 2")
+        ]
+        
+        // When
+        let result = repository.save(items)
+        
+        // Then
+        XCTAssertTrue(result)
+        
+        // Verify data was actually saved
+        let loaded = repository.load()
+        XCTAssertEqual(loaded.count, 2)
+    }
+    
+    func testSaveWithMaxItems() {
+        // Given - Create more than 100 items
+        var items: [ClipItem] = []
+        for i in 0..<150 {
+            items.append(ClipItem(content: "Item \(i)"))
+        }
+        
+        // When
+        let result = repository.save(items)
+        
+        // Then
+        XCTAssertTrue(result) // Should save successfully, limiting to 100 items
+        
+        // Verify only 100 items were saved
+        let loaded = repository.load()
+        XCTAssertEqual(loaded.count, 100)
+        
+        // Verify the first 100 items were saved (most recent)
+        XCTAssertEqual(loaded.first?.content, "Item 0")
+    }
 }
