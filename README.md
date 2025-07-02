@@ -1,5 +1,8 @@
 # QuickSnipe
 
+<img width="495" src="https://github.com/user-attachments/assets/cd800401-cd69-4d94-bdcb-18aad57156d4" />
+
+
 ## Clipboard Manager + Text Editor = 🚀
 
 QuickSnipe is a macOS clipboard manager with a built-in **Quick Editor** feature.
