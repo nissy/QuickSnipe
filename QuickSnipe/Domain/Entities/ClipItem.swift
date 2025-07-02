@@ -29,10 +29,11 @@ struct ClipItem: Identifiable, Codable, Equatable {
     
     var displayContent: String {
         let maxLength = 50
-        if content.count > maxLength {
-            return String(content.prefix(maxLength)) + "..."
+        guard content.count > maxLength else {
+            return content
         }
-        return content
+        // prefix は効率的なので問題ないが、早期リターンで無駄な処理を削減
+        return String(content.prefix(maxLength)) + "..."
     }
     
     var characterCount: Int {

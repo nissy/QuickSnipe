@@ -55,7 +55,7 @@ final class HistoryItemViewTests: XCTestCase {
         let item = ClipItem(content: content)
         
         // When
-        let popover = ClipboardItemPopover(item: item, windowPosition: true)
+        let popover = ClipboardItemPopover(item: item)
         
         // Then
         XCTAssertNotNil(popover)

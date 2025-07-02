@@ -140,5 +140,4 @@ final class ClipboardServiceTests: XCTestCase {
         
         wait(for: [expectation], timeout: 1.0)
     }
-    
 }

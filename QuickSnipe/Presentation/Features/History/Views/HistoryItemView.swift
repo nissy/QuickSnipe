@@ -20,7 +20,6 @@ struct HistoryItemView: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // ピン留めボタン
             Button(action: onTogglePin) {
                 ZStack {
                     Circle()
@@ -53,7 +52,6 @@ struct HistoryItemView: View {
             .scaleEffect(isHovered ? 1.1 : 1.0)
             .animation(.spring(response: 0.3), value: isHovered)
             
-            // コンテンツエリア
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.displayContent)
                     .font(historyFont)
@@ -77,7 +75,6 @@ struct HistoryItemView: View {
                 onTap()
             }
             
-            // Delete button (if available)
             if let onDelete = onDelete, isHovered {
                 Button(action: onDelete) {
                     Image(systemName: "xmark.circle.fill")
@@ -117,7 +114,7 @@ struct HistoryItemView: View {
             attachmentAnchor: popoverAttachmentAnchor,
             arrowEdge: popoverArrowEdge
         ) {
-            ClipboardItemPopover(item: item, windowPosition: isWindowOnLeftSide)
+            ClipboardItemPopover(item: item)
                 .interactiveDismissDisabled() // ポップオーバー内のクリックで閉じないようにする
         }
     }
@@ -189,34 +186,11 @@ struct HistoryItemView: View {
 // MARK: - Popover Content
 struct ClipboardItemPopover: View {
     let item: ClipItem
-    let windowPosition: Bool // true if window is on left side
     
     @ObservedObject private var fontManager = FontManager.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header with gradient
-            HStack {
-                Image(systemName: "doc.text.magnifyingglass")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                Text("Preview")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                Spacer()
-            }
-            .padding(16)
-            .background(
-                LinearGradient(
-                    colors: [Color.accentColor, Color.accentColor.opacity(0.8)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-            
-            // Content
             ScrollView {
                 Text(item.fullContent)
                     .font(popoverFont)
@@ -225,8 +199,7 @@ struct ClipboardItemPopover: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .multilineTextAlignment(.leading)
                     .textSelection(.enabled)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .padding(16)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .background(Color(NSColor.textBackgroundColor))

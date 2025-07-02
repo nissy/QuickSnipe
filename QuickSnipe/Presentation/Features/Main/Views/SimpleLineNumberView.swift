@@ -218,11 +218,7 @@ struct SimpleLineNumberView: NSViewRepresentable {
             // 再計算と再描画
             let font = textView.font ?? NSFont.systemFont(ofSize: 14)
             let lineHeight = calculateFixedLineHeight(for: font)
-            let paragraphStyle = NSMutableParagraphStyle()
-            paragraphStyle.minimumLineHeight = lineHeight
-            paragraphStyle.maximumLineHeight = lineHeight
-            paragraphStyle.lineHeightMultiple = 1.0
-            paragraphStyle.lineSpacing = 0
+            let paragraphStyle = parent.createParagraphStyle(lineHeight: lineHeight)
             
             textView.defaultParagraphStyle = paragraphStyle
             self.paragraphStyle = paragraphStyle
@@ -250,11 +246,7 @@ struct SimpleLineNumberView: NSViewRepresentable {
             // 日本語対応の段落スタイルを維持
             let font = textView.font ?? NSFont.systemFont(ofSize: 14)
             let lineHeight = calculateFixedLineHeight(for: font)
-            let paragraphStyle = NSMutableParagraphStyle()
-            paragraphStyle.minimumLineHeight = lineHeight
-            paragraphStyle.maximumLineHeight = lineHeight
-            paragraphStyle.lineHeightMultiple = 1.0
-            paragraphStyle.lineSpacing = 0
+            let paragraphStyle = parent.createParagraphStyle(lineHeight: lineHeight)
             
             if !textView.string.isEmpty {
                 let range = NSRange(location: 0, length: textView.string.count)
@@ -329,6 +321,18 @@ private struct LineNumberDrawingContext {
     let textAttributes: [NSAttributedString.Key: Any]
     let rect: NSRect
     let fontSize: CGFloat
+}
+
+// 行番号描画のパラメータをまとめた構造体
+private struct DrawLineNumberParams {
+    let lineRect: NSRect
+    let glyphRange: NSRange
+    var currentLineNumber: Int
+    var drawnLineNumbers: Set<Int>
+    let lineNumberFont: NSFont
+    let visibleRect: NSRect
+    let containerOrigin: NSPoint
+    let textContainerInset: NSSize
 }
 
 // シンプルな行番号ルーラービュー
@@ -441,22 +445,14 @@ class SimpleLineNumberRulerView: NSRulerView {
     }
     
     private func calculateSelectedLineNumber(fullText: NSString, selectedRange: NSRange) -> Int {
-        var selectedLineNumber = 1
-        let lines = fullText.components(separatedBy: "\n")
-        var currentLocation = 0
-        
-        for (index, line) in lines.enumerated() {
-            let lineLength = line.count
-            let lineEndLocation = currentLocation + lineLength
-            
-            if selectedRange.location >= currentLocation && selectedRange.location <= lineEndLocation {
-                selectedLineNumber = index + 1
-                break
-            }
-            currentLocation = lineEndLocation + 1 // +1 for newline
+        // パフォーマンス最適化：選択位置までのテキストのみを処理
+        if selectedRange.location == 0 {
+            return 1
         }
         
-        return selectedLineNumber
+        // 改行を直接カウント（配列作成を回避）
+        let textBeforeSelection = fullText.substring(to: min(selectedRange.location, fullText.length))
+        return textBeforeSelection.components(separatedBy: "\n").count
     }
     
     private func drawSelectedLineBackground(
@@ -546,67 +542,105 @@ class SimpleLineNumberRulerView: NSRulerView {
     }
     
     private func drawLineNumbers(context: LineNumberDrawingContext) {
-        // レイアウトマネージャーから実際の行位置を取得して描画
-        let lines = context.fullText.components(separatedBy: "\n")
-        let lineNumberFont = context.textAttributes[.font] as? NSFont ?? NSFont.systemFont(ofSize: context.fontSize)
+        let lineNumberFont = context.textAttributes[.font] as? NSFont ??
+            NSFont.systemFont(ofSize: context.fontSize)
         
         // 基準点の計算
         let visibleRect = context.textView.visibleRect
         let containerOrigin = context.textView.textContainerOrigin
         let textContainerInset = context.textView.textContainerInset
         
-        // 現在の行番号
-        var processedLocation = 0
+        // 可視範囲のグリフ範囲を取得
+        let visibleGlyphRange = context.layoutManager.glyphRange(
+            forBoundingRect: visibleRect,
+            in: context.textContainer
+        )
         
-        // 各行について処理
-        for (index, line) in lines.enumerated() {
-            let lineNumber = index + 1
-            let lineString = "\(lineNumber)"
-            let size = lineString.size(withAttributes: context.textAttributes)
-            
-            // この行の文字範囲を計算
-            let lineLength = line.count
-            
-            // 行の位置を取得（最初の文字のグリフ位置から）
-            if processedLocation < context.layoutManager.numberOfGlyphs {
-                let glyphIndex = context.layoutManager.glyphIndexForCharacter(at: processedLocation)
-                let lineRect = context.layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
+        // 拡張範囲（スクロール時のちらつき防止）
+        let startLoc = max(0, visibleGlyphRange.location - 500)
+        let maxLength = context.layoutManager.numberOfGlyphs - startLoc
+        let extendedGlyphRange = NSRange(
+            location: startLoc,
+            length: min(visibleGlyphRange.length + 1000, maxLength)
+        )
+        
+        // 描画済み行番号を記録（重複描画を防ぐ）
+        var drawnLineNumbers = Set<Int>()
+        
+        // 行番号を計算するための初期値
+        var currentLineNumber = 1
+        if extendedGlyphRange.location > 0 {
+            currentLineNumber = calculateInitialLineNumber(
+                context: context,
+                extendedGlyphRange: extendedGlyphRange
+            )
+        }
+        
+        // 各行フラグメントに対して処理
+        context.layoutManager.enumerateLineFragments(
+            forGlyphRange: extendedGlyphRange
+        ) { lineRect, _, _, glyphRange, _ in
+            var params = DrawLineNumberParams(
+                lineRect: lineRect,
+                glyphRange: glyphRange,
+                currentLineNumber: currentLineNumber,
+                drawnLineNumbers: drawnLineNumbers,
+                lineNumberFont: lineNumberFont,
+                visibleRect: visibleRect,
+                containerOrigin: containerOrigin,
+                textContainerInset: textContainerInset
+            )
+            self.drawLineNumber(context: context, params: &params)
+            currentLineNumber = params.currentLineNumber
+            drawnLineNumbers = params.drawnLineNumbers
+        }
+    }
+    
+    private func calculateInitialLineNumber(
+        context: LineNumberDrawingContext,
+        extendedGlyphRange: NSRange
+    ) -> Int {
+        let range = NSRange(location: 0, length: extendedGlyphRange.location)
+        let characterRange = context.layoutManager.characterRange(
+            forGlyphRange: range,
+            actualGlyphRange: nil
+        )
+        
+        let textBeforeVisible = context.fullText.substring(
+            to: min(characterRange.location, context.fullText.length)
+        )
+        return textBeforeVisible.components(separatedBy: "\n").count
+    }
+    
+    private func drawLineNumber(
+        context: LineNumberDrawingContext,
+        params: inout DrawLineNumberParams
+    ) {
+        let characterRange = context.layoutManager.characterRange(
+            forGlyphRange: params.glyphRange,
+            actualGlyphRange: nil
+        )
+        
+        // Y位置の計算
+        let lineY = params.lineRect.origin.y + params.containerOrigin.y - params.visibleRect.origin.y
+        
+        // 描画範囲内かチェック
+        if lineY + self.fixedLineHeight >= -50 && lineY <= context.rect.height + 50 {
+            // 重複描画を防ぐ
+            if !params.drawnLineNumbers.contains(params.currentLineNumber) {
+                params.drawnLineNumbers.insert(params.currentLineNumber)
                 
-                // Y位置の計算（テキストと同じ座標系で）
-                let lineY = lineRect.origin.y + containerOrigin.y - visibleRect.origin.y
-                
-                // 描画範囲内かチェック
-                if lineY + fixedLineHeight >= -50 && lineY <= context.rect.height + 50 {
-                    // 行の中央に配置するための計算
-                    let lineNumberHeight = lineNumberFont.ascender - lineNumberFont.descender
-                    
-                    // 行の中央位置を計算（lineRectの高さを使用）
-                    let lineCenterY = lineY + textContainerInset.height + (lineRect.height / 2)
-                    
-                    // 行番号を中央に配置（設定値でオフセット調整）
-                    let offset = fontManager.editorLayoutSettings.lineNumberVerticalOffset
-                    let drawingY = lineCenterY - (lineNumberHeight / 2) - lineNumberFont.descender + offset
-                    
-                    let drawingPoint = NSPoint(
-                        x: self.ruleThickness - size.width - 5,
-                        y: drawingY
-                    )
-                    
-                    lineString.draw(at: drawingPoint, withAttributes: context.textAttributes)
-                }
-            } else if index == 0 {
-                // 最初の行が空の場合の特別処理
-                let lineY = containerOrigin.y - visibleRect.origin.y
+                let lineString = "\(params.currentLineNumber)"
+                let size = lineString.size(withAttributes: context.textAttributes)
                 
                 // 行の中央に配置するための計算
-                let lineNumberHeight = lineNumberFont.ascender - lineNumberFont.descender
-                
-                // 行の中央位置を計算（固定行高を使用）
-                let lineCenterY = lineY + textContainerInset.height + (fixedLineHeight / 2)
+                let lineNumberHeight = params.lineNumberFont.ascender - params.lineNumberFont.descender
+                let lineCenterY = lineY + params.textContainerInset.height + (params.lineRect.height / 2)
                 
                 // 行番号を中央に配置（設定値でオフセット調整）
-                let offset = fontManager.editorLayoutSettings.lineNumberVerticalOffset
-                let drawingY = lineCenterY - (lineNumberHeight / 2) - lineNumberFont.descender + offset
+                let offset = self.fontManager.editorLayoutSettings.lineNumberVerticalOffset
+                let drawingY = lineCenterY - (lineNumberHeight / 2) -
+                    params.lineNumberFont.descender + offset
                 
                 let drawingPoint = NSPoint(
                     x: self.ruleThickness - size.width - 5,
@@ -615,30 +649,14 @@ class SimpleLineNumberRulerView: NSRulerView {
                 
                 lineString.draw(at: drawingPoint, withAttributes: context.textAttributes)
             }
-            
-            // 次の行の開始位置を更新（改行文字分も含む）
-            processedLocation += lineLength
-            if index < lines.count - 1 {
-                processedLocation += 1 // 改行文字
-            }
-        }
-    }
-    
-    private func calculateLineNumber(for location: Int, in fullText: NSString) -> Int {
-        let textBeforeRange: String
-        if location == fullText.length && fullText.length > 0 {
-            // 最後の位置の場合、最後の文字が改行かチェック
-            let lastChar = fullText.substring(from: fullText.length - 1)
-            if lastChar == "\n" {
-                textBeforeRange = fullText as String
-            } else {
-                textBeforeRange = fullText.substring(to: location)
-            }
-        } else {
-            textBeforeRange = fullText.substring(to: min(location, fullText.length))
         }
         
-        return textBeforeRange.components(separatedBy: "\n").count
+        // 次の行番号を計算（改行文字の数を数える）
+        if characterRange.location + characterRange.length <= context.fullText.length {
+            let lineText = context.fullText.substring(with: characterRange)
+            let newlineCount = lineText.components(separatedBy: "\n").count - 1
+            params.currentLineNumber += max(1, newlineCount)
+        }
     }
     
     private func drawLastEmptyLine(
@@ -649,9 +667,11 @@ class SimpleLineNumberRulerView: NSRulerView {
         rect: NSRect,
         fontSize: CGFloat
     ) {
-        // 全テキストの行数を計算（最後の空行も含む）
-        let allLines = fullText.components(separatedBy: .newlines)
-        let totalLineCount = allLines.count
+        // パフォーマンス最適化：最後の文字のみをチェック
+        guard fullText.length > 0 && fullText.hasSuffix("\n") else { return }
+        
+        // 最後の改行までの行数を効率的に計算
+        let totalLineCount = fullText.components(separatedBy: "\n").count
         
         // 最後の空行の処理（テキストが改行で終わる場合）
         if fullText.length > 0 && fullText.hasSuffix("\n") {

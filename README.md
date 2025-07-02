@@ -1,69 +1,46 @@
 # QuickSnipe
 
-A modern, efficient clipboard manager for macOS with quick editing capabilities.
+## Clipboard Manager + Text Editor = 🚀
 
-## Features
+QuickSnipe is a macOS clipboard manager with a built-in **Quick Editor** feature.
 
-- 📋 **Clipboard History**: Automatically saves clipboard history
-- ✏️ **Quick Editor**: Edit clipboard content before pasting
-- 📌 **Pinned Items**: Pin frequently used items
-- 🔍 **Search**: Quickly search through clipboard history
-- ⌨️ **Global Hotkey**: Access with `⌃⌥M` from anywhere
-- 🎨 **Modern UI**: Clean, native macOS interface
+Experience unprecedented convenience by editing copied content before pasting.
+
+## Key Features
+
+### ✏️ **Quick Editor** (Unique Feature!)
+- Combine multiple copied texts to create new content
+- Edit email addresses or code snippets before pasting
+- Customize templates on the fly
+- Line numbers for comfortable long text editing
+
+### 📋 Other Convenient Features
+- Automatic clipboard history saving
+- Pin frequently used texts
+- Access from anywhere with hotkey
+
+## Installation
+
+1. [Download the latest version](https://github.com/your-repo/QuickSnipe/releases/latest)
+2. Move `QuickSnipe.app` to Applications folder
+3. Launch and start using from the menu bar
+
+## How to Use
+
+### Basic Usage
+1. Copy text as usual (⌘C)
+2. Open QuickSnipe with hotkey
+3. **Edit in the editor and paste with the "Copy" button**
+
+### Perfect for These Scenarios
+- Changing only the recipient name in email templates
+- Modifying variable names in copied code
+- Combining multiple texts to create new content
+- Editing parts of URLs
 
 ## Requirements
 
-- macOS 13.0 or later
-- Xcode 15.0 or later
-
-## Setup
-
-1. Install dependencies:
-   ```bash
-   brew install xcodegen swiftlint
-   ```
-
-2. Generate Xcode project:
-   ```bash
-   make create-project
-   ```
-
-3. Build and run:
-   ```bash
-   make run
-   ```
-
-## Development
-
-### Build Commands
-
-- `make build` - Build development version
-- `make run` - Build and run
-- `make build-release` - Build release version
-- `make test` - Run tests
-- `make lint` - Run SwiftLint
-- `make clean` - Clean build artifacts
-
-### Project Structure
-
-```
-QuickSnipe/
-├── App/                 # Application entry point
-├── Domain/              # Business logic and models
-├── Data/               # Data persistence
-├── Presentation/       # UI layer (SwiftUI)
-├── Infrastructure/     # Platform services
-└── Resources/          # Assets and localization
-```
-
-## Architecture
-
-The project follows Clean Architecture principles with MVVM pattern:
-
-- **Domain Layer**: Contains business logic, models, and use cases
-- **Data Layer**: Handles data persistence and external data sources
-- **Presentation Layer**: SwiftUI views and ViewModels
-- **Infrastructure Layer**: Platform-specific services and utilities
+macOS 13.0 (Ventura) or later
 
 ## License
 

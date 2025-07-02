@@ -53,7 +53,11 @@ final class MenuBarApp: NSObject, ObservableObject {
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Preferences...", action: #selector(openPreferences), keyEquivalent: ","))
         #if DEBUG
-        menu.addItem(NSMenuItem(title: "Developer Settings...", action: #selector(openDeveloperSettings), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(
+            title: "Developer Settings...",
+            action: #selector(openDeveloperSettings),
+            keyEquivalent: ""
+        ))
         #endif
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit QuickSnipe", action: #selector(quit), keyEquivalent: "q"))

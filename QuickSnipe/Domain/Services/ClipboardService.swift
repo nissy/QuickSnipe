@@ -7,6 +7,7 @@
 
 import Cocoa
 import Foundation
+import Combine
 
 class ClipboardService: ObservableObject, ClipboardServiceProtocol {
     static let shared = ClipboardService()
@@ -26,9 +27,20 @@ class ClipboardService: ObservableObject, ClipboardServiceProtocol {
     private var timerThread: Thread?
     private var isInternalCopy: Bool = false
     
+    // デバウンス用
+    private let saveSubject = PassthroughSubject<[ClipItem], Never>()
+    private var saveSubscription: AnyCancellable?
+    
     private init() {
         // Load saved history
         history = repository.load()
+        
+        // デバウンス設定（1秒後に保存）
+        saveSubscription = saveSubject
+            .debounce(for: .seconds(1), scheduler: RunLoop.main)
+            .sink { [weak self] items in
+                self?.saveHistoryToRepository(items)
+            }
     }
     
     func startMonitoring() {
@@ -96,8 +108,16 @@ class ClipboardService: ObservableObject, ClipboardServiceProtocol {
             
             // 履歴の更新と保存
             DispatchQueue.main.async {
-                // 既存のアイテムを探す
-                if let existingIndex = self.history.firstIndex(where: { $0.content == content }) {
+                // 既存のアイテムを探す（最近の20件のみチェックして高速化）
+                let recentCount = min(20, self.history.count)
+                var foundIndex: Int?
+                
+                for i in 0..<recentCount where self.history[i].content == content {
+                    foundIndex = i
+                    break
+                }
+                
+                if let existingIndex = foundIndex {
                     // 既存のアイテムを最新に移動
                     let existingItem = self.history.remove(at: existingIndex)
                     self.history.insert(existingItem, at: 0)
@@ -114,11 +134,8 @@ class ClipboardService: ObservableObject, ClipboardServiceProtocol {
                 // 履歴の上限を設定
                 self.cleanupHistory()
                 
-                // 永続化のために非同期でコピーを保存
-                let historyCopy = self.history
-                self.serialQueue.async {
-                    self.repository.save(historyCopy)
-                }
+                // 履歴をデバウンスして保存
+                self.saveSubject.send(self.history)
             }
         }
     }
@@ -160,7 +177,7 @@ class ClipboardService: ObservableObject, ClipboardServiceProtocol {
                 history = pinnedItems + [pinnedItem] + unpinnedItems
             }
             
-            repository.save(history)
+            saveSubject.send(history)
         }
     }
     
@@ -191,57 +208,32 @@ class ClipboardService: ObservableObject, ClipboardServiceProtocol {
     }
     
     func clearAllHistory() {
-        serialQueue.async { [weak self] in
-            guard let self = self else { return }
-            
-            var pinnedItemsCopy: [ClipItem] = []
-            
-            DispatchQueue.main.sync {
-                // ピン留めされたアイテムのみを保持
-                self.history = self.history.filter { $0.isPinned }
-                pinnedItemsCopy = self.history
-            }
-            
-            self.repository.save(pinnedItemsCopy)
-        }
+        // ピン留めされたアイテムのみを保持
+        history = history.filter { $0.isPinned }
+        saveSubject.send(history)
     }
     
     func deleteItem(_ item: ClipItem) {
-        serialQueue.async { [weak self] in
-            guard let self = self else { return }
-            
-            var updatedHistory: [ClipItem] = []
-            
-            DispatchQueue.main.sync {
-                // 指定されたアイテムを削除
-                self.history.removeAll { $0.id == item.id }
-                updatedHistory = self.history
-            }
-            
-            self.repository.save(updatedHistory)
-        }
+        history.removeAll { $0.id == item.id }
+        saveSubject.send(history)
     }
     
     func reorderPinnedItems(_ newOrder: [ClipItem]) {
-        serialQueue.async { [weak self] in
-            guard let self = self else { return }
-            
-            var updatedHistory: [ClipItem] = []
-            
-            DispatchQueue.main.sync {
-                // 現在の非ピン留めアイテムを保持
-                let unpinnedItems = self.history.filter { !$0.isPinned }
-                
-                // 新しい順序のピン留めアイテムと非ピン留めアイテムを結合
-                self.history = newOrder + unpinnedItems
-                updatedHistory = self.history
-            }
-            
-            self.repository.save(updatedHistory)
-        }
+        // 現在の非ピン留めアイテムを保持
+        let unpinnedItems = history.filter { !$0.isPinned }
+        
+        // 新しい順序のピン留めアイテムと非ピン留めアイテムを結合
+        history = newOrder + unpinnedItems
+        saveSubject.send(history)
     }
     
     // MARK: - Helper Methods
+    
+    private func saveHistoryToRepository(_ items: [ClipItem]) {
+        serialQueue.async { [weak self] in
+            self?.repository.save(items)
+        }
+    }
     
     private func getActiveAppName() -> String? {
         // フロントモストアプリケーションを取得

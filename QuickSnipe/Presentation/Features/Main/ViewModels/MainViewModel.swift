@@ -12,15 +12,12 @@ import Combine
 class MainViewModel: ObservableObject {
     @Published var editorText: String {
         didSet {
-            // エディタのテキストが変更されたら保存
-            if !editorText.isEmpty {
-                UserDefaults.standard.set(editorText, forKey: "lastEditorText")
-            } else {
-                // 空の場合は保存を削除
-                UserDefaults.standard.removeObject(forKey: "lastEditorText")
-            }
+            // パフォーマンス最適化：デバウンスを使用して保存処理を遅延
+            saveDebouncer.send(editorText)
         }
     }
+    
+    private let saveDebouncer = PassthroughSubject<String, Never>()
     
     private let clipboardService: ClipboardServiceProtocol
     private var cancellables = Set<AnyCancellable>()
@@ -32,6 +29,18 @@ class MainViewModel: ObservableObject {
         // 保存されたエディタテキストを読み込む（なければ空文字）
         self.editorText = UserDefaults.standard.string(forKey: "lastEditorText") ?? ""
         self.clipboardService = clipboardService
+        
+        // デバウンスされた保存処理を設定
+        saveDebouncer
+            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+            .sink { [weak self] text in
+                if !text.isEmpty {
+                    UserDefaults.standard.set(text, forKey: "lastEditorText")
+                } else {
+                    UserDefaults.standard.removeObject(forKey: "lastEditorText")
+                }
+            }
+            .store(in: &cancellables)
         
         // Subscribe to clipboard service changes
         if let observableService = clipboardService as? ClipboardService {
@@ -58,8 +67,20 @@ class MainViewModel: ObservableObject {
     }
     
     private func updateFilteredItems(_ items: [ClipItem]) {
-        self.history = items.filter { !$0.isPinned }
-        self.pinnedItems = items.filter { $0.isPinned }
+        // 1回のループで分類（パフォーマンス最適化）
+        var unpinnedItems: [ClipItem] = []
+        var pinnedItems: [ClipItem] = []
+        
+        for item in items {
+            if item.isPinned {
+                pinnedItems.append(item)
+            } else {
+                unpinnedItems.append(item)
+            }
+        }
+        
+        self.history = unpinnedItems
+        self.pinnedItems = pinnedItems
     }
     
     func copyEditor() {
@@ -74,10 +95,6 @@ class MainViewModel: ObservableObject {
     func clearEditor() {
         editorText = ""
         UserDefaults.standard.removeObject(forKey: "lastEditorText")
-    }
-    
-    func selectHistoryItem(_ item: ClipItem) {
-        clipboardService.copyToClipboard(item.content, fromEditor: false)
     }
     
     func togglePin(for item: ClipItem) {
@@ -96,6 +113,7 @@ class MainViewModel: ObservableObject {
     
     /// エディタに内容を挿入（既存内容をクリア）
     func insertToEditor(content: String) {
+        // 同期的に処理（非同期は不要）
         editorText = content
     }
     
