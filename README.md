@@ -1,5 +1,8 @@
 # QuickSnipe
 
+<img width="495" src="https://github.com/user-attachments/assets/cd800401-cd69-4d94-bdcb-18aad57156d4" />
+
+
 ## Clipboard Manager + Text Editor = 🚀
 
 QuickSnipe is a macOS clipboard manager with a built-in **Quick Editor** feature.
@@ -21,7 +24,7 @@ Experience unprecedented convenience by editing copied content before pasting.
 
 ## Installation
 
-1. [Download the latest version](https://github.com/your-repo/QuickSnipe/releases/latest)
+1. [Download the latest version](https://github.com/nissy/QuickSnipe/releases/latest)
 2. Move `QuickSnipe.app` to Applications folder
 3. Launch and start using from the menu bar
 
