@@ -8,13 +8,15 @@
 import SwiftUI
 
 struct MainView: View {
-    @StateObject private var viewModel = MainViewModel()
+    @EnvironmentObject var viewModel: MainViewModel
     @State private var selectedHistoryItem: ClipItem?
     @State private var hoveredHistoryItem: ClipItem?
     @State private var isShowingCopiedNotification = false
     @State private var isAlwaysOnTop = false
     @AppStorage("editorSectionHeight") private var editorSectionHeight: Double = 250
     @AppStorage("historySectionHeight") private var historySectionHeight: Double = 300
+    @ObservedObject private var appSettings = AppSettings.shared
+    
     let onClose: (() -> Void)?
     let onAlwaysOnTopChanged: ((Bool) -> Void)?
     let onOpenSettings: (() -> Void)?
@@ -37,7 +39,10 @@ struct MainView: View {
             // エディタ挿入の場合はウィンドウを閉じない
         } else {
             viewModel.selectHistoryItem(item)
-            onClose?()
+            // ピン（常に最前面）が有効でない場合のみウィンドウを閉じる
+            if !isAlwaysOnTop {
+                onClose?()
+            }
         }
     }
     
@@ -232,7 +237,10 @@ struct MainView: View {
             isShowingCopiedNotification = false
         }
         
-        onClose?()
+        // ピン（常に最前面）が有効でない場合のみウィンドウを閉じる
+        if !isAlwaysOnTop {
+            onClose?()
+        }
     }
     
     private func clearAction() {

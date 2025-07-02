@@ -32,6 +32,18 @@ final class AppSettings: ObservableObject {
     @AppStorage("hotkeyModifierFlags") var hotkeyModifierFlags = 
         Int(NSEvent.ModifierFlags.command.rawValue | NSEvent.ModifierFlags.option.rawValue)  // CMD+OPT
     
+    // Editor Copy Hotkey Settings
+    @AppStorage("enableEditorCopyHotkey") var enableEditorCopyHotkey: Bool = false
+    @AppStorage("editorCopyHotkeyKeyCode") var editorCopyHotkeyKeyCode: Int = 6  // Z key
+    @AppStorage("editorCopyHotkeyModifierFlags") var editorCopyHotkeyModifierFlags = 
+        Int(NSEvent.ModifierFlags.command.rawValue | NSEvent.ModifierFlags.shift.rawValue)  // CMD+SHIFT
+    
+    // Editor Clear Hotkey Settings
+    @AppStorage("enableEditorClearHotkey") var enableEditorClearHotkey: Bool = false
+    @AppStorage("editorClearHotkeyKeyCode") var editorClearHotkeyKeyCode: Int = 7  // X key
+    @AppStorage("editorClearHotkeyModifierFlags") var editorClearHotkeyModifierFlags = 
+        Int(NSEvent.ModifierFlags.command.rawValue | NSEvent.ModifierFlags.shift.rawValue)  // CMD+SHIFT
+    
     // Launch Settings
     @AppStorage("launchAtLogin") var launchAtLogin: Bool = false
     
@@ -51,6 +63,12 @@ final class AppSettings: ObservableObject {
         static let enableHotkey = "enableHotkey"
         static let hotkeyKeyCode = "hotkeyKeyCode"
         static let hotkeyModifierFlags = "hotkeyModifierFlags"
+        static let enableEditorCopyHotkey = "enableEditorCopyHotkey"
+        static let editorCopyHotkeyKeyCode = "editorCopyHotkeyKeyCode"
+        static let editorCopyHotkeyModifierFlags = "editorCopyHotkeyModifierFlags"
+        static let enableEditorClearHotkey = "enableEditorClearHotkey"
+        static let editorClearHotkeyKeyCode = "editorClearHotkeyKeyCode"
+        static let editorClearHotkeyModifierFlags = "editorClearHotkeyModifierFlags"
         static let launchAtLogin = "launchAtLogin"
     }
 }

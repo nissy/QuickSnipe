@@ -97,14 +97,17 @@ struct SimpleLineNumberView: NSViewRepresentable {
     ) {
         textView.defaultParagraphStyle = paragraphStyle
         
-        if textView.string != text {
+        // IME入力中はテキストの同期をスキップ
+        if !textView.hasMarkedText() && textView.string != text {
             textView.string = text
         }
         
-        // 段落スタイルを適用
-        if !textView.string.isEmpty {
+        // 段落スタイルを適用（IME入力中はスキップ）
+        if !textView.hasMarkedText() && !textView.string.isEmpty {
             let range = NSRange(location: 0, length: textView.string.count)
+            textView.textStorage?.beginEditing()
             textView.textStorage?.addAttribute(.paragraphStyle, value: paragraphStyle, range: range)
+            textView.textStorage?.endEditing()
         }
         
         // タイピング属性も更新
@@ -241,6 +244,12 @@ struct SimpleLineNumberView: NSViewRepresentable {
         
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
+            
+            // IME入力中（marked text がある場合）は処理をスキップ
+            if textView.hasMarkedText() {
+                return
+            }
+            
             parent.text = textView.string
             
             // 日本語対応の段落スタイルを維持
@@ -250,7 +259,9 @@ struct SimpleLineNumberView: NSViewRepresentable {
             
             if !textView.string.isEmpty {
                 let range = NSRange(location: 0, length: textView.string.count)
+                textView.textStorage?.beginEditing()
                 textView.textStorage?.addAttribute(.paragraphStyle, value: paragraphStyle, range: range)
+                textView.textStorage?.endEditing()
             }
             
             // デフォルトスタイルも更新

@@ -9,8 +9,8 @@ import SwiftUI
 import Carbon
 
 struct HotkeyRecorderView: NSViewRepresentable {
-    @Binding var keyCode: UInt16
-    @Binding var modifierFlags: NSEvent.ModifierFlags
+    @Binding var keyCode: Int
+    @Binding var modifierFlags: Int
     
     func makeNSView(context: Context) -> NSTextField {
         let textField = NSTextField()
@@ -31,7 +31,9 @@ struct HotkeyRecorderView: NSViewRepresentable {
     }
     
     private func updateTextField(_ textField: NSTextField) {
-        if keyCode == 0 && modifierFlags.isEmpty {
+        let modifierFlagsValue = NSEvent.ModifierFlags(rawValue: UInt(modifierFlags))
+        
+        if keyCode == 0 && modifierFlagsValue.isEmpty {
             textField.stringValue = ""
             textField.placeholderString = "Click to record hotkey"
             return
@@ -39,12 +41,12 @@ struct HotkeyRecorderView: NSViewRepresentable {
         
         var keys: [String] = []
         
-        if modifierFlags.contains(.control) { keys.append("⌃") }
-        if modifierFlags.contains(.option) { keys.append("⌥") }
-        if modifierFlags.contains(.shift) { keys.append("⇧") }
-        if modifierFlags.contains(.command) { keys.append("⌘") }
+        if modifierFlagsValue.contains(.control) { keys.append("⌃") }
+        if modifierFlagsValue.contains(.option) { keys.append("⌥") }
+        if modifierFlagsValue.contains(.shift) { keys.append("⇧") }
+        if modifierFlagsValue.contains(.command) { keys.append("⌘") }
         
-        if let keyString = keyCodeToString(keyCode) {
+        if let keyString = keyCodeToString(UInt16(keyCode)) {
             keys.append(keyString)
         }
         
@@ -90,7 +92,16 @@ struct HotkeyRecorderField: View {
     
     var body: some View {
         HStack(spacing: 8) {
-            HotkeyRecorderView(keyCode: $keyCode, modifierFlags: $modifierFlags)
+            HotkeyRecorderView(
+                keyCode: Binding<Int>(
+                    get: { Int(keyCode) },
+                    set: { keyCode = UInt16($0) }
+                ),
+                modifierFlags: Binding<Int>(
+                    get: { Int(modifierFlags.rawValue) },
+                    set: { modifierFlags = NSEvent.ModifierFlags(rawValue: UInt($0)) }
+                )
+            )
                 .frame(width: 100, height: 28)
                 .background(isRecording ? Color.blue.opacity(0.1) : Color(NSColor.controlBackgroundColor))
                 .cornerRadius(4)
@@ -104,7 +115,7 @@ struct HotkeyRecorderField: View {
             
             Button("Clear") {
                 keyCode = 0
-                modifierFlags = []
+                modifierFlags = .init()
                 isRecording = false
             }
             .buttonStyle(.borderless)

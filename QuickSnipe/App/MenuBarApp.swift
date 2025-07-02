@@ -102,4 +102,27 @@ extension MenuBarApp: HotkeyManagerDelegate {
     func hotkeyPressed() {
         openMainWindow()
     }
+    
+    func editorCopyHotkeyPressed() {
+        // MainViewModelのインスタンスを取得してコピー処理を実行
+        if let mainViewModel = windowManager.getMainViewModel() {
+            Task { @MainActor in
+                mainViewModel.copyEditor()
+                // ピン（常に最前面）が有効でない場合のみウィンドウを閉じる
+                if !windowManager.isWindowAlwaysOnTop() {
+                    windowManager.closeMainWindow()
+                }
+            }
+        }
+    }
+    
+    func editorClearHotkeyPressed() {
+        // MainViewModelのインスタンスを取得してクリア処理を実行
+        if let mainViewModel = windowManager.getMainViewModel() {
+            Task { @MainActor in
+                mainViewModel.clearEditor()
+                // クリア後もウィンドウは開いたまま
+            }
+        }
+    }
 }

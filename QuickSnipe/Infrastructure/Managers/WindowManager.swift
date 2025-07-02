@@ -15,6 +15,7 @@ final class WindowManager: NSObject {
     #if DEBUG
     private var developerSettingsWindow: NSWindow?
     #endif
+    private var mainViewModel: MainViewModel?
     private var isAlwaysOnTop = false {
         didSet {
             if let window = mainWindow {
@@ -47,6 +48,11 @@ final class WindowManager: NSObject {
     }
     
     private func createMainWindow() -> NSWindow? {
+        // MainViewModelを作成または再利用
+        if mainViewModel == nil {
+            mainViewModel = MainViewModel()
+        }
+        
         let contentView = MainView(
             onClose: { [weak self] in
                 self?.mainWindow?.close()
@@ -58,6 +64,8 @@ final class WindowManager: NSObject {
                 self?.openSettings()
             }
         )
+        .environmentObject(mainViewModel!)
+        
         let hostingController = NSHostingController(rootView: contentView)
         hostingController.sizingOptions = []
         mainWindow = NSWindow(contentViewController: hostingController)
@@ -234,6 +242,23 @@ final class WindowManager: NSObject {
         mainWindow = nil
         isAlwaysOnTop = false
         removeMainWindowObservers()
+    }
+    
+    // MARK: - Public Methods
+    
+    func closeMainWindow() {
+        mainWindow?.close()
+    }
+    
+    func getMainViewModel() -> MainViewModel? {
+        if mainViewModel == nil {
+            mainViewModel = MainViewModel()
+        }
+        return mainViewModel
+    }
+    
+    func isWindowAlwaysOnTop() -> Bool {
+        return isAlwaysOnTop
     }
     
     // MARK: - Settings Window
