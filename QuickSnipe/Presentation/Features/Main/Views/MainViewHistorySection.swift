@@ -49,6 +49,20 @@ struct MainViewHistorySection: View {
                 
                 Spacer()
                 
+                // 履歴数を表示
+                if !history.isEmpty {
+                    Text("\(history.count)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(Color.blue.opacity(0.8))
+                        )
+                        .transition(.scale.combined(with: .opacity))
+                }
+                
                 Button(action: { 
                     withAnimation(.spring()) { 
                         isSearching.toggle() 
