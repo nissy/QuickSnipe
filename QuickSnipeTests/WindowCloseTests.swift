@@ -127,7 +127,7 @@ final class WindowCloseTests: XCTestCase {
                 menuBarApp.editorCopyHotkeyPressed()
                 
                 // エディタテキストがクリアされることを確認
-                XCTAssertTrue(viewModel.editorText.isEmpty || viewModel.editorText == "Test content", 
+                XCTAssertTrue(viewModel.editorText.isEmpty || viewModel.editorText == "Test content",
                             "Editor text should be handled")
             }
         }

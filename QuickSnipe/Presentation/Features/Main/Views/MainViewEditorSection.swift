@@ -93,14 +93,7 @@ struct MainViewEditorSection: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(
-                LinearGradient(
-                    colors: [
-                        Color(NSColor.windowBackgroundColor).opacity(0.95),
-                        Color(NSColor.windowBackgroundColor).opacity(0.8)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+                Color(NSColor.windowBackgroundColor).opacity(0.9)
             )
             
             // エディタコンテンツ

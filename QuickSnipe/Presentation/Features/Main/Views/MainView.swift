@@ -17,6 +17,10 @@ struct MainView: View {
     @AppStorage("historySectionHeight") private var historySectionHeight: Double = 300
     @ObservedObject private var appSettings = AppSettings.shared
     
+    // パフォーマンス最適化: 部分更新用のID
+    @State private var editorRefreshID = UUID()
+    @State private var historyRefreshID = UUID()
+    
     let onClose: (() -> Void)?
     let onAlwaysOnTopChanged: ((Bool) -> Void)?
     let onOpenSettings: (() -> Void)?
@@ -65,6 +69,7 @@ struct MainView: View {
                             onClear: clearAction
                         )
                     }
+                    .id(editorRefreshID) // エディタセクションの部分更新用
                 },
                 bottomContent: {
                     if !viewModel.pinnedItems.isEmpty {
@@ -85,6 +90,7 @@ struct MainView: View {
                                         viewModel.deleteItem(item)
                                     }
                                 )
+                                .id(historyRefreshID) // 履歴セクションの部分更新用
                             },
                             bottomContent: {
                                 MainViewPinnedSection(
@@ -115,43 +121,14 @@ struct MainView: View {
                                 viewModel.deleteItem(item)
                             }
                         )
+                        .id(historyRefreshID) // 履歴セクションの部分更新用
                     }
                 }
             )
         }
         .frame(minWidth: 300, maxWidth: .infinity)
         .background(
-            ZStack {
-                // Gradient background
-                LinearGradient(
-                    colors: [
-                        Color(NSColor.windowBackgroundColor),
-                        Color(NSColor.windowBackgroundColor).opacity(0.95)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                
-                // Subtle pattern overlay
-                GeometryReader { geometry in
-                    Path { path in
-                        let width = geometry.size.width
-                        let height = geometry.size.height
-                        let spacing: CGFloat = 40
-                        
-                        // Create subtle grid pattern
-                        for x in stride(from: 0, to: width, by: spacing) {
-                            path.move(to: CGPoint(x: x, y: 0))
-                            path.addLine(to: CGPoint(x: x, y: height))
-                        }
-                        for y in stride(from: 0, to: height, by: spacing) {
-                            path.move(to: CGPoint(x: 0, y: y))
-                            path.addLine(to: CGPoint(x: width, y: y))
-                        }
-                    }
-                    .stroke(Color.gray.opacity(0.03), lineWidth: 1)
-                }
-            }
+            Color(NSColor.windowBackgroundColor)
         )
         .overlay(CopiedNotificationView(showNotification: $isShowingCopiedNotification), alignment: .top)
         .safeAreaInset(edge: .bottom) {
@@ -201,27 +178,20 @@ struct MainView: View {
                 }
                 .padding(12)
                 .background(
-                    ZStack {
-                        Color(NSColor.windowBackgroundColor).opacity(0.95)
-                        
-                        // Subtle gradient overlay
-                        LinearGradient(
-                            colors: [Color.clear, Color.white.opacity(0.05)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    }
+                    Color(NSColor.windowBackgroundColor).opacity(0.95)
                     .background(.ultraThinMaterial)
                 )
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .editorFontSettingsChanged)) { _ in
-            // フォント設定が変更されたときにビューを更新
-            viewModel.objectWillChange.send()
+        .onReceive(NotificationCenter.default.publisher(for: .editorFontSettingsChanged)
+            .debounce(for: .milliseconds(200), scheduler: RunLoop.main)) { _ in
+            // エディタセクションのみを更新（デバウンス適用）
+            editorRefreshID = UUID()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .historyFontSettingsChanged)) { _ in
-            // フォント設定が変更されたときにビューを更新
-            viewModel.objectWillChange.send()
+        .onReceive(NotificationCenter.default.publisher(for: .historyFontSettingsChanged)
+            .debounce(for: .milliseconds(200), scheduler: RunLoop.main)) { _ in
+            // 履歴セクションのみを更新（デバウンス適用）
+            historyRefreshID = UUID()
         }
     }
     

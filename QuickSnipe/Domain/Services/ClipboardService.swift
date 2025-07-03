@@ -27,6 +27,10 @@ class ClipboardService: ObservableObject, ClipboardServiceProtocol {
     private var timerThread: Thread?
     private var isInternalCopy: Bool = false
     
+    // パフォーマンス最適化: 高速な重複チェック用
+    private var recentContentHashes: Set<Int> = []
+    private let maxRecentHashes = 50
+    
     // デバウンス用
     private let saveSubject = PassthroughSubject<[ClipItem], Never>()
     private var saveSubscription: AnyCancellable?
@@ -34,6 +38,9 @@ class ClipboardService: ObservableObject, ClipboardServiceProtocol {
     private init() {
         // Load saved history
         history = repository.load()
+        
+        // ハッシュセットを初期化
+        initializeRecentHashes()
         
         // デバウンス設定（1秒後に保存）
         saveSubscription = saveSubject
@@ -108,25 +115,32 @@ class ClipboardService: ObservableObject, ClipboardServiceProtocol {
             
             // 履歴の更新と保存
             DispatchQueue.main.async {
-                // 既存のアイテムを探す（最近の20件のみチェックして高速化）
-                let recentCount = min(20, self.history.count)
-                var foundIndex: Int?
+                let contentHash = content.hashValue
                 
-                for i in 0..<recentCount where self.history[i].content == content {
-                    foundIndex = i
-                    break
-                }
-                
-                if let existingIndex = foundIndex {
-                    // 既存のアイテムを最新に移動
-                    let existingItem = self.history.remove(at: existingIndex)
-                    self.history.insert(existingItem, at: 0)
-                    
-                    Logger.shared.debug("Moved existing item to top")
+                // 高速な重複チェック（O(1)）
+                if self.recentContentHashes.contains(contentHash) {
+                    // ハッシュが存在する場合のみ実際の内容を確認
+                    if let existingIndex = self.history.firstIndex(where: { $0.content == content }) {
+                        // 既存のアイテムを最新に移動
+                        let existingItem = self.history.remove(at: existingIndex)
+                        self.history.insert(existingItem, at: 0)
+                        
+                        Logger.shared.debug("Moved existing item to top")
+                    }
                 } else {
                     // 新しいアイテムを追加
                     let newItem = ClipItem(content: content, sourceApp: sourceApp)
                     self.history.insert(newItem, at: 0)
+                    
+                    // ハッシュセットを更新
+                    self.recentContentHashes.insert(contentHash)
+                    if self.recentContentHashes.count > self.maxRecentHashes {
+                        // 古いハッシュを削除（最も古いアイテムのハッシュを削除）
+                        if self.history.count > self.maxRecentHashes,
+                           let oldestContent = self.history[self.maxRecentHashes...].first?.content {
+                            self.recentContentHashes.remove(oldestContent.hashValue)
+                        }
+                    }
                     
                     Logger.shared.debug("Added new item to history from app: \(sourceApp ?? "unknown")")
                 }
@@ -210,10 +224,17 @@ class ClipboardService: ObservableObject, ClipboardServiceProtocol {
     func clearAllHistory() {
         // ピン留めされたアイテムのみを保持
         history = history.filter { $0.isPinned }
+        
+        // ハッシュセットを再初期化
+        initializeRecentHashes()
+        
         saveSubject.send(history)
     }
     
     func deleteItem(_ item: ClipItem) {
+        // ハッシュセットから削除
+        recentContentHashes.remove(item.content.hashValue)
+        
         history.removeAll { $0.id == item.id }
         saveSubject.send(history)
     }
@@ -241,6 +262,12 @@ class ClipboardService: ObservableObject, ClipboardServiceProtocol {
             return frontApp.localizedName
         }
         return nil
+    }
+    
+    private func initializeRecentHashes() {
+        // 最近のアイテムのハッシュをSetに追加
+        let recentItems = history.prefix(maxRecentHashes)
+        recentContentHashes = Set(recentItems.map { $0.content.hashValue })
     }
     
     deinit {

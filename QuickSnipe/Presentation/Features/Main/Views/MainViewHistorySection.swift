@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct MainViewHistorySection: View {
     let history: [ClipItem]
@@ -13,13 +14,15 @@ struct MainViewHistorySection: View {
     @Binding var hoveredHistoryItem: ClipItem?
     @State private var isSearching = false
     @State private var searchText = ""
+    @State private var debouncedSearchText = ""
+    @State private var searchCancellable: AnyCancellable?
     let onSelectItem: (ClipItem) -> Void
     let onTogglePin: (ClipItem) -> Void
     let onDelete: ((ClipItem) -> Void)?
     
     var body: some View {
-        let filteredHistory = searchText.isEmpty ? history : 
-            history.filter { $0.content.localizedCaseInsensitiveContains(searchText) }
+        let filteredHistory = debouncedSearchText.isEmpty ? history : 
+            history.filter { $0.content.localizedCaseInsensitiveContains(debouncedSearchText) }
         
         return VStack(spacing: 0) {
             // ヘッダー
@@ -45,6 +48,20 @@ struct MainViewHistorySection: View {
                     .foregroundColor(.primary)
                 
                 Spacer()
+                
+                // 履歴数を表示
+                if !history.isEmpty {
+                    Text("\(history.count)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(Color.blue.opacity(0.8))
+                        )
+                        .transition(.scale.combined(with: .opacity))
+                }
                 
                 Button(action: { 
                     withAnimation(.spring()) { 
@@ -77,14 +94,7 @@ struct MainViewHistorySection: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(
-                LinearGradient(
-                    colors: [
-                        Color(NSColor.windowBackgroundColor).opacity(0.95),
-                        Color(NSColor.windowBackgroundColor).opacity(0.8)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+                Color(NSColor.windowBackgroundColor).opacity(0.9)
             )
             
             // 検索バー
@@ -146,7 +156,7 @@ struct MainViewHistorySection: View {
             
             // 履歴リスト
             ScrollView {
-                VStack(spacing: 6) {
+                LazyVStack(spacing: 6) {
                     ForEach(filteredHistory) { item in
                         HistoryItemView(
                             item: item,
@@ -182,6 +192,15 @@ struct MainViewHistorySection: View {
             .background(
                 Color(NSColor.controlBackgroundColor).opacity(0.3)
             )
+        }
+        .onChange(of: searchText) { newValue in
+            // 検索テキストの変更をデバウンス（パフォーマンス最適化）
+            searchCancellable?.cancel()
+            searchCancellable = Just(newValue)
+                .delay(for: .milliseconds(300), scheduler: RunLoop.main)
+                .sink { value in
+                    debouncedSearchText = value
+                }
         }
     }
 }
