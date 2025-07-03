@@ -45,7 +45,7 @@ final class AppSettings: ObservableObject {
         Int(NSEvent.ModifierFlags.command.rawValue | NSEvent.ModifierFlags.shift.rawValue)  // CMD+SHIFT
     
     // Launch Settings
-    @AppStorage("launchAtLogin") var launchAtLogin: Bool = false
+    @AppStorage("autoLaunchAtLogin") var autoLaunchAtLogin: Bool = false
     
     private init() {}
     

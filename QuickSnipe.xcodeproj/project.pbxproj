@@ -26,6 +26,7 @@
 		2CE4A835F3365FAB0BD2CEE7 /* ClipboardService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 522407BBE47F9DD0707D28DA /* ClipboardService.swift */; };
 		30EE47DB6FE4F53EEE98FC8B /* QuickSnipeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E326DA3A02E291F3A6AB02 /* QuickSnipeApp.swift */; };
 		375759035C888E1BDEFE4332 /* WindowCloseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1301562DC3FA94544C7C7A5E /* WindowCloseTests.swift */; };
+		3D8E19096519E48623ED954E /* TestUserDefaults.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE1696441A3E92F5616714D8 /* TestUserDefaults.swift */; };
 		3E7E89C65390C351126ADCA5 /* ClipboardFontSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54EB24025C59CEB5710EEBBB /* ClipboardFontSettingsView.swift */; };
 		43B0E068D1D1560952AD0C58 /* RangedNumberField.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABE282614767C431D5E5212E /* RangedNumberField.swift */; };
 		461E11DD70394C47BE6ABE34 /* SettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98BE37B97793CF121A63AD27 /* SettingsSection.swift */; };
@@ -135,6 +136,7 @@
 		ABE282614767C431D5E5212E /* RangedNumberField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RangedNumberField.swift; sourceTree = "<group>"; };
 		AE72358478BD78C09F87F85F /* SimpleFontSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimpleFontSettingsView.swift; sourceTree = "<group>"; };
 		BA48A1FB114021724CFE8814 /* HistoryItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryItemView.swift; sourceTree = "<group>"; };
+		BE1696441A3E92F5616714D8 /* TestUserDefaults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestUserDefaults.swift; sourceTree = "<group>"; };
 		BEC125EB0419857E62C9B9F7 /* SettingsSidebarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSidebarItem.swift; sourceTree = "<group>"; };
 		C17B056644F0DE329C44E6EC /* QuickSnipe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuickSnipe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C50ABD608B5E2DD29FAF3BF8 /* JapaneseFontAlignmentTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JapaneseFontAlignmentTest.swift; sourceTree = "<group>"; };
@@ -270,6 +272,7 @@
 				1301562DC3FA94544C7C7A5E /* WindowCloseTests.swift */,
 				6BF2F11281F2FE412843F3AA /* Data */,
 				347530B1CC34D38BC3B3EF41 /* Domain */,
+				D8C39E1A678EA8388F20BF75 /* Helpers */,
 				E2449CC555DEB4116B194BD5 /* Presentation */,
 				7C5880F5C1738F4E8A0F35AA /* UI */,
 			);
@@ -458,6 +461,14 @@
 				9A7B43166462896F233F9587 /* FontSettings.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		D8C39E1A678EA8388F20BF75 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				BE1696441A3E92F5616714D8 /* TestUserDefaults.swift */,
+			);
+			path = Helpers;
 			sourceTree = "<group>";
 		};
 		E2449CC555DEB4116B194BD5 /* Presentation */ = {
@@ -701,6 +712,7 @@
 				8E98292B020F90B0E7025127 /* SettingsIntegrationTests.swift in Sources */,
 				5173971E46D30A56A1318C5A /* SettingsReflectionTests.swift in Sources */,
 				7D0C7267D30873769F446871 /* SimpleLineNumberViewTests.swift in Sources */,
+				3D8E19096519E48623ED954E /* TestUserDefaults.swift in Sources */,
 				375759035C888E1BDEFE4332 /* WindowCloseTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
