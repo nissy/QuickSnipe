@@ -17,6 +17,10 @@ struct MainView: View {
     @AppStorage("historySectionHeight") private var historySectionHeight: Double = 300
     @ObservedObject private var appSettings = AppSettings.shared
     
+    // パフォーマンス最適化: 部分更新用のID
+    @State private var editorRefreshID = UUID()
+    @State private var historyRefreshID = UUID()
+    
     let onClose: (() -> Void)?
     let onAlwaysOnTopChanged: ((Bool) -> Void)?
     let onOpenSettings: (() -> Void)?
@@ -65,6 +69,7 @@ struct MainView: View {
                             onClear: clearAction
                         )
                     }
+                    .id(editorRefreshID) // エディタセクションの部分更新用
                 },
                 bottomContent: {
                     if !viewModel.pinnedItems.isEmpty {
@@ -85,6 +90,7 @@ struct MainView: View {
                                         viewModel.deleteItem(item)
                                     }
                                 )
+                                .id(historyRefreshID) // 履歴セクションの部分更新用
                             },
                             bottomContent: {
                                 MainViewPinnedSection(
@@ -115,6 +121,7 @@ struct MainView: View {
                                 viewModel.deleteItem(item)
                             }
                         )
+                        .id(historyRefreshID) // 履歴セクションの部分更新用
                     }
                 }
             )
@@ -216,12 +223,12 @@ struct MainView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .editorFontSettingsChanged)) { _ in
-            // フォント設定が変更されたときにビューを更新
-            viewModel.objectWillChange.send()
+            // エディタセクションのみを更新
+            editorRefreshID = UUID()
         }
         .onReceive(NotificationCenter.default.publisher(for: .historyFontSettingsChanged)) { _ in
-            // フォント設定が変更されたときにビューを更新
-            viewModel.objectWillChange.send()
+            // 履歴セクションのみを更新
+            historyRefreshID = UUID()
         }
     }
     

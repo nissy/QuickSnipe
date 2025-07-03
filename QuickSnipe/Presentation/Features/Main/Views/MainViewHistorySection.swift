@@ -146,7 +146,7 @@ struct MainViewHistorySection: View {
             
             // 履歴リスト
             ScrollView {
-                VStack(spacing: 6) {
+                LazyVStack(spacing: 6) {
                     ForEach(filteredHistory) { item in
                         HistoryItemView(
                             item: item,

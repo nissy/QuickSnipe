@@ -16,10 +16,12 @@ final class MenuBarApp: NSObject, ObservableObject {
     
     override init() {
         super.init()
+        // delegateをすぐに設定
+        hotkeyManager.delegate = self
+        
         DispatchQueue.main.async { [weak self] in
             self?.setupMenuBar()
             self?.startServices()
-            self?.hotkeyManager.delegate = self
         }
     }
     
@@ -69,6 +71,12 @@ final class MenuBarApp: NSObject, ObservableObject {
     
     private func startServices() {
         clipboardService.startMonitoring()
+        
+        // アプリケーション起動完了後にホットキーを再登録
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            Logger.shared.log("Refreshing hotkeys after app launch")
+            self?.hotkeyManager.refreshHotkeys()
+        }
     }
     
     @objc private func openMainWindow() {

@@ -30,9 +30,23 @@ final class HotkeyManager {
     init() {
         HotkeyManager.shared = self
         setupSettingsObserver()
+        // ホットキーの登録を遅延実行
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.registerAllHotkeys()
+        }
+    }
+    
+    private func registerAllHotkeys() {
+        Logger.shared.log("Registering all hotkeys...")
         registerCurrentHotkey()
         registerEditorCopyHotkey()
         registerEditorClearHotkey()
+    }
+    
+    // アプリケーション起動完了後に呼び出すメソッド
+    func refreshHotkeys() {
+        Logger.shared.log("Refreshing hotkeys...")
+        registerAllHotkeys()
     }
     
     deinit {
@@ -70,8 +84,11 @@ final class HotkeyManager {
         unregisterHotkey()
         
         // AppStorageから設定を読み込み
-        let enableHotkey = UserDefaults.standard.object(forKey: "enableHotkey") as? Bool ?? false // デフォルトで無効
-        guard enableHotkey else { return }
+        let enableHotkey = UserDefaults.standard.bool(forKey: "enableHotkey")
+        guard enableHotkey else { 
+            Logger.shared.log("Main hotkey is disabled")
+            return 
+        }
         
         // キーコードとモディファイアフラグを読み込み
         let keyCode = UInt16(UserDefaults.standard.integer(forKey: "hotkeyKeyCode"))
@@ -79,12 +96,13 @@ final class HotkeyManager {
         let modifierFlags = NSEvent.ModifierFlags(rawValue: UInt(modifierFlagsRaw))
         
         // デフォルト値の設定（初回起動時）
-        if keyCode == 0 {
+        if keyCode == 0 && modifierFlagsRaw == 0 {
             UserDefaults.standard.set(9, forKey: "hotkeyKeyCode") // V key
             UserDefaults.standard.set(
                 NSEvent.ModifierFlags.command.rawValue | NSEvent.ModifierFlags.option.rawValue, 
                 forKey: "hotkeyModifierFlags"
             ) // CMD+OPT
+            Logger.shared.log("Set default hotkey values")
             registerCurrentHotkey() // 再帰的に呼び出し
             return
         }
@@ -97,6 +115,7 @@ final class HotkeyManager {
         if modifierFlags.contains(.shift) { carbonModifiers |= UInt32(shiftKey) }
         
         // ホットキーを登録
+        Logger.shared.log("Registering main hotkey with keyCode: \(keyCode), modifiers: \(modifierFlags)")
         registerHotkey(keyCode: UInt32(keyCode), modifiers: carbonModifiers)
     }
     
@@ -194,7 +213,10 @@ final class HotkeyManager {
         
         // AppStorageから設定を読み込み
         let enableEditorCopyHotkey = UserDefaults.standard.bool(forKey: "enableEditorCopyHotkey")
-        guard enableEditorCopyHotkey else { return }
+        guard enableEditorCopyHotkey else { 
+            Logger.shared.log("Editor copy hotkey is disabled")
+            return 
+        }
         
         // キーコードとモディファイアフラグを読み込み
         let keyCode = UInt16(UserDefaults.standard.integer(forKey: "editorCopyHotkeyKeyCode"))
@@ -202,12 +224,13 @@ final class HotkeyManager {
         let modifierFlags = NSEvent.ModifierFlags(rawValue: UInt(modifierFlagsRaw))
         
         // デフォルト値の設定（初回起動時）
-        if keyCode == 0 {
+        if keyCode == 0 && modifierFlagsRaw == 0 {
             UserDefaults.standard.set(6, forKey: "editorCopyHotkeyKeyCode") // Z key
             UserDefaults.standard.set(
                 NSEvent.ModifierFlags.command.rawValue | NSEvent.ModifierFlags.shift.rawValue, 
                 forKey: "editorCopyHotkeyModifierFlags"
             ) // CMD+SHIFT
+            Logger.shared.log("Set default editor copy hotkey values")
             registerEditorCopyHotkey() // 再帰的に呼び出し
             return
         }
@@ -223,7 +246,9 @@ final class HotkeyManager {
         let hotKeyID = EventHotKeyID(signature: OSType(0x514B5350), id: 2) // "QKSP" in hex
         
         // ホットキーを登録
-        RegisterEventHotKey(UInt32(keyCode), carbonModifiers, hotKeyID, GetApplicationEventTarget(), 0, &editorCopyHotKey)
+        Logger.shared.log("Registering editor copy hotkey with keyCode: \(keyCode), modifiers: \(modifierFlags)")
+        RegisterEventHotKey(UInt32(keyCode), carbonModifiers, hotKeyID, 
+                          GetApplicationEventTarget(), 0, &editorCopyHotKey)
     }
     
     private func unregisterEditorCopyHotkey() {
@@ -241,7 +266,10 @@ final class HotkeyManager {
         
         // AppStorageから設定を読み込み
         let enableEditorClearHotkey = UserDefaults.standard.bool(forKey: "enableEditorClearHotkey")
-        guard enableEditorClearHotkey else { return }
+        guard enableEditorClearHotkey else { 
+            Logger.shared.log("Editor clear hotkey is disabled")
+            return 
+        }
         
         // キーコードとモディファイアフラグを読み込み
         let keyCode = UInt16(UserDefaults.standard.integer(forKey: "editorClearHotkeyKeyCode"))
@@ -249,12 +277,13 @@ final class HotkeyManager {
         let modifierFlags = NSEvent.ModifierFlags(rawValue: UInt(modifierFlagsRaw))
         
         // デフォルト値の設定（初回起動時）
-        if keyCode == 0 {
+        if keyCode == 0 && modifierFlagsRaw == 0 {
             UserDefaults.standard.set(7, forKey: "editorClearHotkeyKeyCode") // X key
             UserDefaults.standard.set(
                 NSEvent.ModifierFlags.command.rawValue | NSEvent.ModifierFlags.shift.rawValue, 
                 forKey: "editorClearHotkeyModifierFlags"
             ) // CMD+SHIFT
+            Logger.shared.log("Set default editor clear hotkey values")
             registerEditorClearHotkey() // 再帰的に呼び出し
             return
         }
@@ -270,7 +299,9 @@ final class HotkeyManager {
         let hotKeyID = EventHotKeyID(signature: OSType(0x514B5350), id: 3) // "QKSP" in hex
         
         // ホットキーを登録
-        RegisterEventHotKey(UInt32(keyCode), carbonModifiers, hotKeyID, GetApplicationEventTarget(), 0, &editorClearHotKey)
+        Logger.shared.log("Registering editor clear hotkey with keyCode: \(keyCode), modifiers: \(modifierFlags)")
+        RegisterEventHotKey(UInt32(keyCode), carbonModifiers, hotKeyID, 
+                          GetApplicationEventTarget(), 0, &editorClearHotKey)
     }
     
     private func unregisterEditorClearHotkey() {
