@@ -52,9 +52,11 @@ class MainViewModel: ObservableObject {
             .store(in: &cancellables)
         }
         
-        // 設定値の変更を監視
+        // 特定の設定値の変更のみを監視（パフォーマンス最適化）
+        // 注: UserDefaultsの変更通知は特定のキーを識別できないため、
+        // debounceのみで処理頻度を制限
         NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)
-            .debounce(for: .milliseconds(100), scheduler: RunLoop.main)
+            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 guard let self = self else { return }
                 // 設定値が変更されたら再フィルタリング
@@ -67,9 +69,16 @@ class MainViewModel: ObservableObject {
     }
     
     private func updateFilteredItems(_ items: [ClipItem]) {
+        // 変更がない場合は早期リターン（パフォーマンス最適化）
+        if items.isEmpty && history.isEmpty && pinnedItems.isEmpty {
+            return
+        }
+        
         // 1回のループで分類（パフォーマンス最適化）
         var unpinnedItems: [ClipItem] = []
         var pinnedItems: [ClipItem] = []
+        unpinnedItems.reserveCapacity(items.count)
+        pinnedItems.reserveCapacity(min(items.count, 10))
         
         for item in items {
             if item.isPinned {
@@ -79,8 +88,13 @@ class MainViewModel: ObservableObject {
             }
         }
         
-        self.history = unpinnedItems
-        self.pinnedItems = pinnedItems
+        // 変更がある場合のみ更新
+        if self.history != unpinnedItems {
+            self.history = unpinnedItems
+        }
+        if self.pinnedItems != pinnedItems {
+            self.pinnedItems = pinnedItems
+        }
     }
     
     func copyEditor() {
