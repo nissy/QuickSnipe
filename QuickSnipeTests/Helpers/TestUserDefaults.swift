@@ -53,10 +53,6 @@ class TestUserDefaults: UserDefaults {
         return storage[defaultName] as? Data
     }
     
-    override func set(_ value: Data?, forKey defaultName: String) {
-        storage[defaultName] = value
-    }
-    
     override func set(_ value: Bool, forKey defaultName: String) {
         storage[defaultName] = value
     }
